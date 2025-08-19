@@ -1,0 +1,8 @@
+import OpenAI from 'openai'
+
+const openai = new OpenAI({
+  baseURL: process.env.OPEN_AI_BASE_URL,
+  apiKey: process.env.API_KEY,
+})
+
+export default openai

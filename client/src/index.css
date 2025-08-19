@@ -1,0 +1,35 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-theme-naviBlue: #090e18;
+  --color-theme-lightBlue: #151a24;
+  --font-grotesk-space: 'Space Grotesk', sans-serif;
+  --font-exo-space: 'Exo', sans-serif;
+  --breakpoint-xs: 300px;
+  --color-theme-sky-blue: #3f3eed;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  display: none;
+  background-color: rgba(255, 255, 255, 0);
+}
+.bg-blue-banner {
+  background-image: url('/images/heroBanner.jpg');
+  background-size: cover;
+  background-position: 90%;
+}
+.folder::before {
+  content: '';
+  position: absolute;
+  bottom: -5%;
+  border-radius: 9999px;
+  left: 0%;
+  opacity: 0;
+  width: 100%;
+  height: 1.5px;
+  background-color: var(--color-theme-sky-blue);
+}
+
+.folder:hover::before {
+  opacity: 1;
+}
