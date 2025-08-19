@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../../features/auth'
 import ThemeReloader from './ThemeReloader'
-import useLogout from '../../Context/useLogout'
+import useLogout from '../../Context/UseLogout'
 
 const Header = ({ setIsSiderOpen, isSideBarOpen }) => {
   const [isProfilePopOpen, setIsProfilePopOpen] = useState(false)
