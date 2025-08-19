@@ -11,7 +11,7 @@ import { PiUsersThree } from 'react-icons/pi'
 import { Link, NavLink } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { useDispatch, useSelector } from 'react-redux'
-import useLogout from '../../Context/useLogout'
+import useLogout from '../../Context/UseLogout'
 import ThemeReloader from './ThemeReloader'
 import { logout } from '../../features/auth'
 
