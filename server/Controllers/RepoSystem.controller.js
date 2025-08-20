@@ -44,6 +44,7 @@ export const getAllRepos = async (req, res) => {
   try {
     const { id } = req.user
     const [repos] = await pool.query('SELECT * FROM repos where user_id = ?', [id])
+
     res.status(200).json({
       success: true,
       repos,
@@ -123,19 +124,13 @@ export const addRepo = async (req, res) => {
 
 export const fetchRepos = async (req, res) => {
   try {
-    // Capture prefix from params
-    let prefix = req.params.prefix || ''
+    // Params se prefix lo (agar multiple segments ho to join kar do)
+    console.log(req.params.prefix)
+    let prefix = [].concat(req.params.prefix || []).join('/')
 
-    // If it's an array (multiple segments), join them with "/"
-    if (Array.isArray(prefix)) {
-      prefix = prefix.join('/')
-    }
+    if (prefix && !prefix.endsWith('/')) prefix += '/'
 
-    if (prefix && !prefix.endsWith('/')) {
-      prefix += '/'
-    }
-
-    const { Contents, CommonPrefixes } = await s3Client.send(
+    const { Contents = [], CommonPrefixes = [] } = await s3Client.send(
       new ListObjectsV2Command({
         Bucket: process.env.AWS_BUCKET_NAME,
         Prefix: prefix,
@@ -143,29 +138,22 @@ export const fetchRepos = async (req, res) => {
       })
     )
 
-    // Folders
-    const folders = (CommonPrefixes || []).map(f => ({
+    const folders = CommonPrefixes.map(f => ({
       name: f.Prefix.replace(prefix, '').replace(/\/$/, ''),
       key: f.Prefix,
       type: 'folder',
     }))
 
-    // Files
-    const files = (Contents || [])
-      .filter(c => c.Key !== prefix) // remove self folder reference
-      .map(f => ({
-        name: f.Key.replace(prefix, ''),
-        key: f.Key,
-        type: 'file',
-        size: f.Size,
-      }))
+    const files = Contents.filter(c => c.Key !== prefix).map(f => ({
+      name: f.Key.replace(prefix, ''),
+      key: f.Key,
+      type: 'file',
+      size: f.Size,
+    }))
 
-    // Merge with folders first, files after
-    const items = [...folders, ...files]
-
-    res.json({ success: true, items })
+    res.json({ success: true, items: [...folders, ...files] })
   } catch (err) {
-    console.error(err)
+    console.error('S3 fetch error:', err)
     res.status(500).json({ success: false, message: 'Failed to list files' })
   }
 }

@@ -1,4 +1,4 @@
-// CreateRepo.jsx (updated: dispatch setRepos on success)
+// CreateRepo.jsx (updated: normalize repo name to remove spaces anywhere)
 import React, { useEffect, useMemo, useState } from 'react'
 import Header from '../../../../common/Components/Header'
 import Sidebar from '../../../../common/Components/Sidebar'
@@ -16,24 +16,27 @@ import { setRepos } from '../../../../features/Repos'
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL
 
-const slugify = s =>
+// normalize function: removes spaces (replaces with '-') and strips invalid characters
+const normalizeRepoName = s =>
   s
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9\-]/g, '')
-    .replace(/\-+/g, '-')
-    .replace(/^\-+|\-+$/g, '')
+    ? String(s)
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-') // replace any whitespace with single hyphen
+        .replace(/[^a-z0-9\-]/g, '') // allow only a-z, 0-9 and hyphen
+        .replace(/\-+/g, '-') // collapse multiple hyphens
+    : ''
 
 const CreateRepo = () => {
   const { isSideBarOpen, setIsSiderOpen } = UseSideBarContext()
-  const { register, handleSubmit, watch, formState } = useForm({
+  const { register, handleSubmit, watch, formState, setValue } = useForm({
     mode: 'onBlur',
     defaultValues: { repoName: '', description: '', visibility: 'private', template: 'empty' },
   })
   const { errors, isDirty } = formState
 
   const dispatch = useDispatch()
-  const existingRepos = useSelector(state => state.Repos?.repos ?? []) // adjust selector if your slice key differs
+  const existingRepos = useSelector(state => state.Repos?.repos ?? [])
   const user = useSelector(state => state.auth.user)
 
   const [createdRepo, setCreatedRepo] = useState(null)
@@ -43,7 +46,9 @@ const CreateRepo = () => {
   const visibility = watch('visibility') || 'private'
   const template = watch('template') || 'empty'
 
-  const slug = useMemo(() => (repoName ? slugify(repoName) : ''), [repoName])
+  // slug will follow the normalized repo name (no spaces anywhere)
+  const slug = useMemo(() => (repoName ? normalizeRepoName(repoName) : ''), [repoName])
+
   const displayUserPrefix = useMemo(() => {
     if (!user) return 'guest/guest'
     return `${user.firstName || 'user'}${user.lastName || ''}-${user.id}`
@@ -70,9 +75,18 @@ const CreateRepo = () => {
         repo_name: data.repo_name ?? repoName,
       }
 
+      // ensure repo_name is normalized (no spaces)
+      const normalizedName = normalizeRepoName(newRepo.repo_name || newRepo.repoName || repoName)
+      newRepo.repo_name = normalizedName
+
       // 1) if backend returns an entire list, use it
       if (Array.isArray(data.repos)) {
-        dispatch(setRepos(data.repos))
+        // normalize each repo's name defensively
+        const normalizedList = data.repos.map(r => ({
+          ...r,
+          repo_name: normalizeRepoName(r.repo_name || r.repoName || ''),
+        }))
+        dispatch(setRepos(normalizedList))
       } else {
         // 2) otherwise append (but avoid duplicate ids)
         const filtered = existingRepos.filter(r => String(r.id) !== String(newRepo.id))
@@ -108,8 +122,10 @@ const CreateRepo = () => {
   }, [isSuccess, isError, data])
 
   const onSubmit = values => {
+    // ensure payload uses normalized repoName (defensive)
+    const normalized = normalizeRepoName(values.repoName)
     const payload = {
-      repoName: values.repoName,
+      repoName: normalized,
       description: values.description,
       visibility: values.visibility,
       template: values.template,
@@ -210,6 +226,14 @@ const CreateRepo = () => {
                         required: 'Repo name is required',
                         minLength: { value: 2, message: 'Too short' },
                       })}
+                      value={repoName}
+                      onChange={e => {
+                        const normalized = normalizeRepoName(e.target.value)
+                        setValue('repoName', normalized, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }}
                     />
                     {errors.repoName && (
                       <div className="md:text-[0.9vw] sm:text-[1.9vw] xs:text-[3.4vw] text-red-400 md:mt-[0.4vw] sm:mt-[0.9vw] xs:mt-[1.4vw]">
@@ -324,7 +348,7 @@ function AnimateSuccessPanel({ createdRepo, onCopy, basePrefix }) {
 
   if (!createdRepo) return null
 
-  const repoName = createdRepo.repo_name || createdRepo.repoName || 'new-repo'
+  const repoName = normalizeRepoName(createdRepo.repo_name || createdRepo.repoName || 'new-repo')
   const repoId = createdRepo.id || 'NEWID'
   const repoUrl = `${window.location.origin}/file-manager/${repoId}/${basePrefix}/${repoName}`
 

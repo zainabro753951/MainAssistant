@@ -12,7 +12,7 @@ export const generateTokenAndSaveCookie = (data, rememberMe = '30d', res) => {
     httpOnly: true, // Prevent JS access
     secure: process.env.NODE_ENV === 'production', // Required on Render
     maxAge: rememberMe ? 30 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000, // 30d or 1h
-    sameSite: 'None', // ✅ cross-domain cookies require None
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict', // ✅ cross-domain cookies require None
   })
 
   return token

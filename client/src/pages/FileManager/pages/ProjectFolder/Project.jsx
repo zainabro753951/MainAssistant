@@ -9,14 +9,6 @@ import { UseSideBarContext } from '../../../../Context/SideBarOpenProvider'
 import { setFilesForPrefix } from '../../../../features/Repos'
 import ProjectDetails from './Components/ProjectDetails'
 
-/**
- * Robust navigation & prefix builder:
- * - Works with encoded/decode names
- * - Builds URLs from path segments (no fragile string replace)
- * - Guards against duplicate navigation
- * - Prevents double clicks (simple lock/debounce)
- */
-
 const backendUrl = import.meta.env.VITE_BACKEND_URL
 
 export default function Project() {
