@@ -11,8 +11,5 @@ services:
     staticPublishPath: client/dist
     autoDeployTrigger: commit
     rootDir: client
-    redirects:
-      - source: /*
-        destination: /index.html
-        status: 200
+
 version: '1'
