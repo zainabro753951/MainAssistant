@@ -8,7 +8,7 @@ services:
       - key: VITE_BACKEND_URL
         sync: false
     buildCommand: npm install; npm run build
-    staticPublishPath: dist
+    staticPublishPath: client/dist
     autoDeployTrigger: commit
     rootDir: client
     redirects:
