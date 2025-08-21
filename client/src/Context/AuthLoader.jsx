@@ -4,12 +4,10 @@ import { login, logout } from '../features/auth'
 import useCheckUserAuth from '../Secure/CheckUserAuth'
 import { PropagateLoader } from 'react-spinners'
 import ThemeReloader from '../common/Components/ThemeReloader'
-import useJoinSocketRoom from './UseJoinSocket'
 
 const AuthLoader = ({ children }) => {
   const dispatch = useDispatch()
   const { data, isSuccess, isError, error, isLoading } = useCheckUserAuth()
-  useJoinSocketRoom()
 
   useEffect(() => {
     if (isSuccess && data?.user) {

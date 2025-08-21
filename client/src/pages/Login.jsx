@@ -6,13 +6,11 @@ import { useDispatch } from 'react-redux'
 import { Link } from 'react-router-dom'
 import { toast, ToastContainer } from 'react-toastify'
 import { login, logout } from '../features/auth'
-import { useSocketContext } from '../Context/SocketProvder'
 import { motion } from 'framer-motion'
 
 const Login = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL
   const dispatch = useDispatch()
-  const { socket } = useSocketContext()
   const {
     register,
     handleSubmit,
