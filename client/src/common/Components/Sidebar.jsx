@@ -33,15 +33,13 @@ const Sidebar = ({ isSideBarOpen }) => {
     { path: '/reset-password', LinkIcon: <PiUsersThree />, LinkName: 'Reset Password' },
   ]
 
-  const { mutate, isPending, isError, isSuccess, error, data } = useLogout()
+  const { mutate, isPending, isError, isSuccess, error } = useLogout()
 
   const handleLogout = () => mutate()
 
   useEffect(() => {
     if (isError) console.log(error)
-    if (isSuccess) {
-      dispatch(logout())
-    }
+    if (isSuccess) dispatch(logout())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isError, isSuccess])
 
@@ -54,10 +52,9 @@ const Sidebar = ({ isSideBarOpen }) => {
         transition-all duration-300 overflow-hidden
         ${
           isSideBarOpen
-            ? 'md:min-w-[21.5vw]  md:pt-[5.2vw]'
+            ? 'md:min-w-[21.5vw] md:pt-[5.2vw]'
             : 'xs:w-fit xs:pt-[9vw] sm:pt-[7.5vw] md:pt-[5.2vw]'
-        }
-      `}
+        }`}
     >
       {/* Links */}
       <div className="w-full flex flex-col items-center overflow-auto sidebar-scrollbar">
@@ -70,21 +67,19 @@ const Sidebar = ({ isSideBarOpen }) => {
             <motion.div
               key={idx}
               whileHover={{ scale: 1.03 }}
-              className="w-full rounded-lg transition-all duration-300"
+              className="w-full rounded-[0.8vw] transition-all duration-300"
             >
               <NavLink
                 to={link.path}
                 className={({ isActive }) =>
                   `flex items-center gap-[0.9vw] md:px-[1vw] sm:px-[0.8vw] xs:px-[0.9vw]
                   ${isSideBarOpen ? 'md:py-[1.2vw] sm:py-[1.8vw] xs:py-[2.2vw]' : 'py-[1.1vw]'}
-                  font-grotesk-space font-semibold tracking-wide rounded-lg
+                  font-grotesk-space font-semibold tracking-wide rounded-[0.8vw]
                   ${
                     isActive
                       ? 'bg-gradient-to-r from-[#1C1C6C] to-[#142447] text-theme-sky-blue shadow-md'
                       : 'hover:bg-[#161A24]'
-                  }
-                  overflow-hidden
-                  `
+                  }`
                 }
               >
                 <span className="text-[1.6vw] md:text-[1.4vw] sm:text-[2.4vw] xs:text-[3.6vw] text-gray-300">
@@ -109,7 +104,7 @@ const Sidebar = ({ isSideBarOpen }) => {
           <NavLink
             to={'/register'}
             className="flex items-center gap-[0.9vw] md:px-[1vw] sm:px-[0.8vw] xs:px-[0.9vw] md:py-[1.2vw] sm:py-[1.8vw] xs:py-[2.2vw]
-              font-grotesk-space font-semibold tracking-wide rounded-lg hover:bg-[#161A24] transition-all"
+              font-grotesk-space font-semibold tracking-wide rounded-[0.8vw] hover:bg-[#161A24] transition-all"
           >
             <FiEdit className="text-[1.4vw] md:text-[1.2vw] sm:text-[2.0vw] xs:text-[3.2vw]" />
             {isSideBarOpen && (
@@ -123,7 +118,7 @@ const Sidebar = ({ isSideBarOpen }) => {
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsSettingOpen(!isSettingOpen)}
               className="flex items-center justify-between gap-[0.9vw] md:px-[1vw] sm:px-[0.8vw] xs:px-[0.9vw]
-                md:py-[1.2vw] sm:py-[1.8vw] xs:py-[2.2vw] font-grotesk-space font-semibold rounded-lg cursor-pointer hover:bg-[#161A24] transition-all"
+                md:py-[1.2vw] sm:py-[1.8vw] xs:py-[2.2vw] font-grotesk-space font-semibold rounded-[0.8vw] cursor-pointer hover:bg-[#161A24] transition-all"
             >
               <div className="flex items-center gap-[0.9vw]">
                 <FiSettings className="text-[1.4vw] md:text-[1.2vw] sm:text-[2.0vw] xs:text-[3.2vw]" />
@@ -149,7 +144,7 @@ const Sidebar = ({ isSideBarOpen }) => {
                   className={`flex flex-col mt-[0.6vw] ${
                     isSideBarOpen
                       ? 'md:px-[1.2vw]'
-                      : 'absolute left-[3.8rem] bg-[#161A24] rounded-md p-[0.6vw] z-20'
+                      : 'absolute left-[3.8rem] bg-[#161A24] rounded-[0.8vw] p-[0.6vw] z-20'
                   }`}
                 >
                   {settings.map((link, idx) => (
@@ -157,7 +152,7 @@ const Sidebar = ({ isSideBarOpen }) => {
                       key={idx}
                       to={link.path}
                       className={({ isActive }) =>
-                        `flex items-center gap-[0.6vw] py-[0.6vw] px-[0.8vw] rounded-md font-grotesk-space text-[0.95vw]
+                        `flex items-center gap-[0.6vw] py-[0.6vw] px-[0.8vw] rounded-[0.8vw] font-grotesk-space text-[0.95vw]
                         ${isActive ? 'text-theme-sky-blue' : 'text-gray-300 hover:text-white'}`
                       }
                     >
@@ -176,7 +171,7 @@ const Sidebar = ({ isSideBarOpen }) => {
               whileHover={{ scale: 1.03 }}
               onClick={handleLogout}
               className="flex items-center gap-[0.9vw] md:px-[1vw] sm:px-[0.8vw] xs:px-[0.9vw] md:py-[1.2vw] sm:py-[1.8vw] xs:py-[2.2vw]
-                font-grotesk-space font-semibold text-red-400 hover:text-red-500 rounded-lg cursor-pointer transition-all"
+                font-grotesk-space font-semibold text-red-400 hover:text-red-500 rounded-[0.8vw] cursor-pointer transition-all"
             >
               <TbLogout className="text-[1.4vw] md:text-[1.2vw] sm:text-[2.0vw] xs:text-[3.2vw]" />
               {isSideBarOpen && (
@@ -195,7 +190,7 @@ const Sidebar = ({ isSideBarOpen }) => {
       >
         <Link
           to={'/profile-settings'}
-          className="flex items-center gap-[0.8vw] bg-[#121B32]/80 border border-[#19274d] rounded-lg p-[0.9vw] hover:border-theme-sky-blue transition-all overflow-hidden"
+          className="flex items-center gap-[0.8vw] bg-[#121B32]/80 border border-[#19274d] rounded-[0.8vw] p-[0.9vw] hover:border-theme-sky-blue transition-all overflow-hidden"
         >
           <div className="w-[4.6vw] h-[4.6vw] md:w-[3.6vw] md:h-[3.6vw] sm:w-[5.2vw] sm:h-[5.2vw] xs:w-[7.2vw] xs:h-[7.2vw] flex items-center justify-center rounded-full bg-[#21262F] overflow-hidden shrink-0 border border-blue-700">
             <img
@@ -209,7 +204,7 @@ const Sidebar = ({ isSideBarOpen }) => {
               <h2 className="font-semibold text-white md:text-[1.05vw] sm:text-[1.9vw] xs:text-[3.0vw] truncate">
                 {user ? `${user.firstName} ${user.lastName}` : 'Guest User'}
               </h2>
-              <p className="text-[0.85vw] md:text-[0.85vw] sm:text-[1.6vw] xs:text-[2.6vw] text-gray-400 truncate">
+              <p className="md:text-[0.85vw] sm:text-[1.6vw] xs:text-[2.6vw] text-gray-400 truncate">
                 {user ? user.email : 'guest@email.com'}
               </p>
             </div>

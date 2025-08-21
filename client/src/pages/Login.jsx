@@ -34,8 +34,6 @@ const Login = () => {
   useEffect(() => {
     if (isSuccess) {
       dispatch(login({ user: data?.user }))
-      const userId = data?.user?.id
-      socket.emit('user-join', userId)
     }
 
     if (isError) {
@@ -50,10 +48,6 @@ const Login = () => {
       })
       dispatch(logout())
     }
-
-    return () => {
-      socket.off('user-join')
-    }
   }, [isSuccess, isError])
 
   const onSubmit = data => {
@@ -61,7 +55,7 @@ const Login = () => {
   }
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0f1a] to-[#121b32] md:px-4 xs:px-2">
+    <div className="w-full min-h-[100dvh] flex items-center justify-center bg-gradient-to-br from-[#0a0f1a] to-[#121b32] md:px-4 xs:px-2">
       <ToastContainer />
       <motion.div
         initial={{ opacity: 0, y: 40 }}

@@ -9,7 +9,7 @@ const HomeDashboard = () => {
   return (
     <>
       <Header setIsSiderOpen={setIsSiderOpen} isSideBarOpen={isSideBarOpen} />
-      <div className="w-full h-screen flex overflow-hidden bg-[#0f1126] text-white">
+      <div className="w-full h-[100dvh] flex overflow-hidden bg-[#0f1126] text-white">
         <Sidebar isSideBarOpen={isSideBarOpen} />
         <main className="flex-1 overflow-auto sidebar-scrollbar">
           <Hero />

@@ -128,7 +128,7 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#071225] to-[#041026] md:p-[1.5vw] sm:p-[2vw] xs:p-[2.5vw]">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-[#071225] to-[#041026] md:p-[1.5vw] sm:p-[2vw] xs:p-[2.5vw]">
       <ToastContainer />
       <motion.div
         initial={{ opacity: 0, y: 14 }}
