@@ -143,7 +143,7 @@ export const logout = async (req, res) => {
     res.clearCookie('token', {
       httpOnly: true, // Prevent JS access
       secure: process.env.NODE_ENV === 'production', // Use HTTPS in production
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict', // ✅ cross-domain cookies require None
     })
 
     return res.status(200).json({
