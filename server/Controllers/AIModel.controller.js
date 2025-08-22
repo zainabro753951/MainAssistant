@@ -37,10 +37,8 @@ export const textGen = async (req, res) => {
     let parsedResponse
     try {
       parsedResponse = JSON.parse(cleaned)
-      console.log('✅ Parsed JSON:', parsedResponse)
     } catch (err) {
       console.error('❌ Still invalid JSON:', err.message)
-      console.log('🔎 Cleaned string:', cleaned)
     }
 
     await executeSystemCommand(parsedResponse?.type, parsedResponse?.userInput)

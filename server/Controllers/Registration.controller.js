@@ -389,5 +389,5 @@ export const settingAIAssistant = async (req, res) => {
 
 export const auth = async (req, res) => {
   const user = req.user
-  res.status(200).json({ success: true, errorCode: 'USER_AUTH', user })
+  res.status(200).json({ success: true, user })
 }

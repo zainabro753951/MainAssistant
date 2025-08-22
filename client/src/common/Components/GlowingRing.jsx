@@ -5,7 +5,7 @@ import { FiMic, FiMicOff, FiCopy } from 'react-icons/fi'
 /**
  * Fixed GlowingVoiceRings:
  * - UI kept the same (glassmorphic card + canvas + controls)
- * - Improved speech recognition lifecycle (no aborted/restart loops)
+ * - Speech recognition auto-restart only on desktop (mobile requires manual restart)
  * - Exposes window.recognitionRef and window.isRecognitionActiveRef as before
  *
  * Props:
@@ -28,6 +28,9 @@ const GlowingVoiceRings = ({ setUserInput }) => {
   const [audioLevel, setAudioLevel] = useState(0)
   const [lastTranscript, setLastTranscript] = useState('')
 
+  // Helper: detect mobile devices (used to disable auto-restart on mobile)
+  const isMobileDevice = () => /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
   /* -------------------------
      Audio analyser setup
      ------------------------- */
@@ -35,15 +38,30 @@ const GlowingVoiceRings = ({ setUserInput }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      // console.log(audioCtx.state)
+
+      // mobile Safari/Chrome may start suspended; resume on user gesture
+      if (audioCtx.state === 'suspended') {
+        try {
+          await audioCtx.resume()
+        } catch (e) {
+          // ignore resume errors
+        }
+      }
+
       const source = audioCtx.createMediaStreamSource(stream)
       const analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256
+
+      // Safe connection: source -> analyser only (don't connect analyser to destination)
       source.connect(analyser)
-      const dataArray = new Uint8Array(analyser.frequencyBinCount)
+
       analyserRef.current = analyser
-      dataArrayRef.current = dataArray
+      dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount)
     } catch (err) {
       console.warn('Audio setup failed / permission denied:', err)
+      analyserRef.current = null
+      dataArrayRef.current = null
     }
   }
 
@@ -168,7 +186,7 @@ const GlowingVoiceRings = ({ setUserInput }) => {
   }, [])
 
   /* -------------------------
-     Speech recognition lifecycle (fixed)
+     Speech recognition lifecycle
      ------------------------- */
   const createRecognitionInstance = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
@@ -233,24 +251,27 @@ const GlowingVoiceRings = ({ setUserInput }) => {
         // intentional stop: do nothing
         return
       }
-      // transient end -> attempt restart after small delay
-      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current)
-      restartTimeoutRef.current = setTimeout(() => {
-        try {
-          if (recognitionRef.current) {
-            recognitionRef.current.start()
-            isRunningRef.current = true
-            setIsListening(true)
-          } else {
-            // create fresh instance
+
+      // Auto-restart only on desktop (mobile requires manual restart)
+      if (!isMobileDevice()) {
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current)
+        restartTimeoutRef.current = setTimeout(() => {
+          try {
+            if (recognitionRef.current) {
+              recognitionRef.current.start()
+              isRunningRef.current = true
+              setIsListening(true)
+            } else {
+              // create fresh instance
+              startRecognition()
+            }
+          } catch (err) {
+            // fallback: create new instance
+            recognitionRef.current = null
             startRecognition()
           }
-        } catch (err) {
-          // fallback: create new instance
-          recognitionRef.current = null
-          startRecognition()
-        }
-      }, 900)
+        }, 900)
+      }
     }
 
     recognition.onerror = evt => {
@@ -264,23 +285,25 @@ const GlowingVoiceRings = ({ setUserInput }) => {
         intentionalStopRef.current = false
         return
       }
-      // for other errors, attempt to restart gracefully
+      // for other errors, attempt to restart gracefully (desktop only)
       console.warn('Speech recognition error:', err)
       isRunningRef.current = false
       setIsListening(false)
-      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current)
-      restartTimeoutRef.current = setTimeout(() => {
-        try {
-          // try restart same instance
-          recognition.start()
-          isRunningRef.current = true
-          setIsListening(true)
-        } catch (e) {
-          // replace instance
-          recognitionRef.current = null
-          startRecognition()
-        }
-      }, 1000)
+      if (!isMobileDevice()) {
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current)
+        restartTimeoutRef.current = setTimeout(() => {
+          try {
+            // try restart same instance
+            recognition.start()
+            isRunningRef.current = true
+            setIsListening(true)
+          } catch (e) {
+            // replace instance
+            recognitionRef.current = null
+            startRecognition()
+          }
+        }, 1000)
+      }
     }
 
     recognition.onresult = event => {

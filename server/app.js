@@ -23,7 +23,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 const corsOptions = {
   origin: isProduction
     ? process.env.FRONTEND_URLS?.split(',') || []
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://10.169.70.1:5173'],
+    : ['http://localhost:5173', 'http://localhost:5174'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-custom-header'],
   credentials: true,
