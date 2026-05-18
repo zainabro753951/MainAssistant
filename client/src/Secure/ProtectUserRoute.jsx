@@ -5,8 +5,7 @@ import ThemeReloader from '../common/Components/ThemeReloader'
 
 const ProtectUserRoute = ({ children }) => {
   const location = useLocation()
-  const { user, isAuthenticated, isLoading } = useSelector(state => state.auth)
-  if (isLoading) return <ThemeReloader />
+  const { isAuthenticated } = useSelector(state => state.auth)
 
   if (!isAuthenticated) {
     return <Navigate to={'/login'} state={{ from: location }} replace />

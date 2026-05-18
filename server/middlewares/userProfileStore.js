@@ -1,19 +1,46 @@
-import multer from 'multer'
-import { CloudinaryStorage } from 'multer-storage-cloudinary'
-import cloudinary from '../cloudinary.config.js'
+import multer from 'multer';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../cloudinary.config.js';
 
+// Cloudinary Storage
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'ai-assistant/users',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-    public_id: (req, file) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-      return file.fieldname + '-' + uniqueSuffix
-    },
+  cloudinary,
+
+  params: async (req, file) => {
+    // Check image mime type
+    if (!file.mimetype.startsWith('image/')) {
+      throw new Error('Only image files are allowed');
+    }
+
+    return {
+      folder: 'ai-assistant/users',
+
+      // Auto detect any image format
+      resource_type: 'image',
+
+      public_id: `${file.fieldname}-${Date.now()}`,
+    };
   },
-})
+});
 
-const userImageParser = multer({ storage })
+// Multer Parser
+const userImageParser = multer({
+  storage,
 
-export default userImageParser
+  // File Size Validation
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+
+  // File Type Validation
+  fileFilter: (req, file, cb) => {
+    // Accept all image formats
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+});
+
+export default userImageParser;

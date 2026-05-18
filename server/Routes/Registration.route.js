@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router } from 'express';
 import {
   auth,
   login,
@@ -9,16 +9,16 @@ import {
   RegValidation,
   settingAIAssistant,
   updateUserProfileInfo,
-} from '../Controllers/Registration.controller.js'
-import { secureRoute } from '../middlewares/SecureRoutes.js'
-import userImageParser from '../middlewares/userProfileStore.js'
-const router = Router()
+} from '../Controllers/Registration.controller.js';
+import { secureRoute } from '../middlewares/SecureRoutes.js';
+import userImageParser from '../middlewares/userProfileStore.js';
+const router = Router();
 
-router.post('/register', RegValidation, registration)
+router.post('/register', RegValidation, registration);
 
-router.post('/login', LoginValidation, login)
+router.post('/login', LoginValidation, login);
 
-router.post('/logout', secureRoute, logout)
+router.post('/logout', secureRoute, logout);
 
 router.post(
   '/user/update-profile',
@@ -29,10 +29,10 @@ router.post(
   ]),
   profileSettingValidation,
   updateUserProfileInfo
-)
+);
 
-router.post('/ai-setting', secureRoute, settingAIAssistant)
+router.post('/ai-setting', secureRoute, settingAIAssistant);
 
-router.get('/auth', secureRoute, auth)
+router.get('/auth', secureRoute, auth);
 
-export default router
+export default router;

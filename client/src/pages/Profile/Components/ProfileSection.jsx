@@ -1,49 +1,55 @@
-// ProfileSection.jsx
-import React, { useEffect, useState, useRef } from 'react'
-import { motion } from 'motion/react'
-import { useForm } from 'react-hook-form'
-import { useDispatch, useSelector } from 'react-redux'
-import { TbEdit } from 'react-icons/tb'
-import { FiTrash2, FiCheck } from 'react-icons/fi'
-import { useMutation } from '@tanstack/react-query'
-import axios from 'axios'
-import { login } from '../../../features/auth'
-import { toast, ToastContainer } from 'react-toastify'
-import { PulseLoader } from 'react-spinners'
+// src/pages/auth/ProfileSection.jsx
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { FiAlertCircle, FiCheck, FiTrash2 } from 'react-icons/fi';
+import { TbEdit } from 'react-icons/tb';
+import { useDispatch, useSelector } from 'react-redux';
+import { PulseLoader } from 'react-spinners';
+import { toast, ToastContainer } from 'react-toastify';
+import { login } from '../../../features/auth';
 
-const DEFAULT_AVATAR = '/images/userProfile/default-profile-image.jpg'
-const DEFAULT_BANNER = '/images/userProfile/default-black-banner.png'
+const DEFAULT_AVATAR = '/images/userProfile/default-profile-image.jpg';
+const DEFAULT_BANNER = '/images/userProfile/default-black-banner.png';
 
 export default function ProfileSection() {
-  const { user } = useSelector(s => s.auth)
-  const dispatch = useDispatch()
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
+  const { user } = useSelector((s) => s.auth);
+  const dispatch = useDispatch();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  // previews and files
-  const [profilePreview, setProfilePreview] = useState(DEFAULT_AVATAR)
-  const [bannerPreview, setBannerPreview] = useState(DEFAULT_BANNER)
-  const [profileFile, setProfileFile] = useState(null)
-  const [bannerFile, setBannerFile] = useState(null)
+  // Previews and files
+  const [profilePreview, setProfilePreview] = useState(DEFAULT_AVATAR);
+  const [bannerPreview, setBannerPreview] = useState(DEFAULT_BANNER);
+  const [profileFile, setProfileFile] = useState(null);
+  const [bannerFile, setBannerFile] = useState(null);
 
-  // upload progress (0-100)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [isUploading, setIsUploading] = useState(false)
+  // Upload progress
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Drag state for banner
-  const [isDragOver, setIsDragOver] = useState(false)
-  const bannerDropRef = useRef(null)
+  const [isDragOver, setIsDragOver] = useState(false);
+  const bannerDropRef = useRef(null);
 
-  // initialize previews from user
+  // Server-side field errors
+  const [serverFieldErrors, setServerFieldErrors] = useState({});
+
+  // Initialize previews from user
   useEffect(() => {
-    setProfilePreview(user?.profileImage || DEFAULT_AVATAR)
-    setBannerPreview(user?.bannerImage || DEFAULT_BANNER)
-  }, [user])
+    if (user) {
+      setProfilePreview(user.profileImage || DEFAULT_AVATAR);
+      setBannerPreview(user.bannerImage || DEFAULT_BANNER);
+    }
+  }, [user]);
 
-  // react-hook-form
+  // React-hook-form
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm({
     defaultValues: {
       firstName: user?.firstName || '',
@@ -52,95 +58,143 @@ export default function ProfileSection() {
       phoneNumber: user?.phoneNumber || '',
       bio: user?.bio || '',
     },
-  })
+  });
 
   // Helper: create preview
   const createPreview = (file, setPreview, setFile) => {
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => setPreview(reader.result)
-    reader.readAsDataURL(file)
-    setFile(file)
-  }
+    if (!file) return;
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file.', { theme: 'dark' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result);
+    reader.readAsDataURL(file);
+    setFile(file);
+  };
 
   // Handle banner drag/drop
-  const handleBannerDrop = e => {
-    e.preventDefault()
-    setIsDragOver(false)
-    const file = e.dataTransfer?.files?.[0]
-    if (!file) return
-    createPreview(file, setBannerPreview, setBannerFile)
-  }
+  const handleBannerDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (!file) return;
+    createPreview(file, setBannerPreview, setBannerFile);
+  };
 
-  const handleBannerSelect = e => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    createPreview(file, setBannerPreview, setBannerFile)
-  }
+  const handleBannerSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    createPreview(file, setBannerPreview, setBannerFile);
+  };
 
-  const handleProfileSelect = e => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    createPreview(file, setProfilePreview, setProfileFile)
-  }
+  const handleProfileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    createPreview(file, setProfilePreview, setProfileFile);
+  };
 
-  // Profile update mutation (uses onUploadProgress to set progress)
+  // Profile update mutation
   const mutation = useMutation({
-    mutationFn: formData =>
+    mutationFn: (formData) =>
       axios.post(`${backendUrl}/user/update-profile`, formData, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: progressEvent => {
-          if (!progressEvent.total) return
-          const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total)
-          setUploadProgress(pct)
+        onUploadProgress: (progressEvent) => {
+          if (!progressEvent.total) return;
+          const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(pct);
         },
       }),
     onMutate: () => {
-      setIsUploading(true)
-      setUploadProgress(0)
+      setIsUploading(true);
+      setUploadProgress(0);
+      setServerFieldErrors({}); // Clear previous server errors
     },
     onSettled: () => {
-      setTimeout(() => {
-        setIsUploading(false)
-        setUploadProgress(0)
-      }, 400)
+      setIsUploading(false);
+      setUploadProgress(0);
     },
-    onSuccess: res => {
-      toast.success(res?.data?.message || 'Profile updated', { theme: 'dark' })
-      dispatch(login({ user: res?.data?.data }))
+    onSuccess: (res) => {
+      const data = res?.data;
+      if (data?.success) {
+        toast.success(data.message || 'Profile updated successfully!', {
+          theme: 'dark',
+          style: { backgroundColor: '#0f1724', border: '1px solid #3f3eed' },
+        });
+
+        // Update Redux store with new user data
+        dispatch(login({ user: data.data }));
+
+        // Reset file states but keep previews (which are now updated)
+        setProfileFile(null);
+        setBannerFile(null);
+      } else {
+        toast.error(data?.message || 'Update failed', { theme: 'dark' });
+      }
     },
-    onError: err => {
-      toast.error(err?.response?.data?.message || 'Update failed', { theme: 'dark' })
+    onError: (err) => {
+      const errorData = err?.response?.data;
+      if (errorData?.errorCode === 'VALIDATION_ERROR' && errorData?.errors) {
+        // Map server errors to fields
+        const fieldErrors = {};
+        errorData.errors.forEach((e) => {
+          fieldErrors[e.field] = e.message;
+        });
+        setServerFieldErrors(fieldErrors);
+
+        toast.error('Please correct the errors in your profile form.', {
+          theme: 'dark',
+          style: { backgroundColor: '#0f1724', border: '1px solid #d34b4b' },
+        });
+      } else {
+        toast.error(
+          errorData?.message || 'We were unable to update your profile. Please try again later.',
+          {
+            theme: 'dark',
+            style: { backgroundColor: '#0f1724', border: '1px solid #d34b4b' },
+          }
+        );
+      }
     },
-  })
+  });
 
-  const onSubmit = values => {
-    const fd = new FormData()
-    fd.append('id', user?.id || '')
-    fd.append('firstName', values.firstName || '')
-    fd.append('lastName', values.lastName || '')
-    fd.append('email', values.email || '')
-    fd.append('phoneNumber', values.phoneNumber || '')
-    fd.append('bio', values.bio || '')
+  const onSubmit = (values) => {
+    const fd = new FormData();
+    fd.append('id', user?.id || '');
+    fd.append('firstName', values.firstName?.trim() || '');
+    fd.append('lastName', values.lastName?.trim() || '');
+    fd.append('email', values.email?.trim() || '');
+    fd.append('phoneNumber', values.phoneNumber?.trim() || '');
+    fd.append('bio', values.bio?.trim() || '');
 
-    if (profileFile) fd.append('profileImage', profileFile)
-    if (bannerFile) fd.append('bannerImage', bannerFile)
+    // Append files only if they exist/changed
+    if (profileFile) fd.append('profileImage', profileFile);
+    if (bannerFile) fd.append('bannerImage', bannerFile);
 
-    mutation.mutate(fd)
-  }
+    mutation.mutate(fd);
+  };
 
   const removeProfile = () => {
-    setProfileFile(null)
-    setProfilePreview(DEFAULT_AVATAR)
-    toast.info('Avatar reset to default', { theme: 'dark' })
-  }
+    setProfileFile(null);
+    setProfilePreview(user?.profileImage || DEFAULT_AVATAR);
+    // Note: Backend handles null/undefined by keeping existing or removing based on logic.
+    // If you want to remove it entirely, you might need a specific flag or send null if API supports it.
+    // For now, this resets the preview to default/existing in UI.
+    toast.info('Avatar preview reset to default', { theme: 'dark' });
+  };
 
   const removeBanner = () => {
-    setBannerFile(null)
-    setBannerPreview(DEFAULT_BANNER)
-    toast.info('Banner reset to default', { theme: 'dark' })
-  }
+    setBannerFile(null);
+    setBannerPreview(user?.bannerImage || DEFAULT_BANNER);
+    toast.info('Banner preview reset to default', { theme: 'dark' });
+  };
+
+  // Helper to get error message (client-side or server-side)
+  const getErrorMessage = (fieldName) => {
+    return errors[fieldName]?.message || serverFieldErrors[fieldName];
+  };
 
   return (
     <form
@@ -164,9 +218,9 @@ export default function ProfileSection() {
         {/* banner area (drag/drop) */}
         <div
           ref={bannerDropRef}
-          onDragOver={e => {
-            e.preventDefault()
-            setIsDragOver(true)
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
           }}
           onDragLeave={() => setIsDragOver(false)}
           onDrop={handleBannerDrop}
@@ -191,6 +245,7 @@ export default function ProfileSection() {
               <input
                 id="bannerInput"
                 type="file"
+                name="bannerImage"
                 accept="image/*"
                 hidden
                 onChange={handleBannerSelect}
@@ -207,7 +262,7 @@ export default function ProfileSection() {
             </button>
           </div>
 
-          {/* small upload progress badge (over banner) */}
+          {/* upload progress badge */}
           {isUploading && (
             <div className="absolute right-[1.2vw] top-[1.2vw] bg-black/50 px-[0.8vw] py-[0.4vw] rounded-full text-xs text-white/90">
               Uploading {uploadProgress}% <span className="ml-[0.4vw]">⏳</span>
@@ -239,6 +294,7 @@ export default function ProfileSection() {
                     <input
                       id="profileInput"
                       type="file"
+                      name="profileImage"
                       accept="image/*"
                       hidden
                       onChange={handleProfileSelect}
@@ -268,15 +324,21 @@ export default function ProfileSection() {
                     <button
                       type="button"
                       onClick={() => {
-                        setProfilePreview(user?.profileImage || DEFAULT_AVATAR)
-                        setBannerPreview(user?.bannerImage || DEFAULT_BANNER)
-                        setProfileFile(null)
-                        setBannerFile(null)
-                        toast.info('Previews reset', { theme: 'dark' })
+                        setProfilePreview(user?.profileImage || DEFAULT_AVATAR);
+                        setBannerPreview(user?.bannerImage || DEFAULT_BANNER);
+                        setProfileFile(null);
+                        setBannerFile(null);
+                        setServerFieldErrors({});
+                        setValue('firstName', user?.firstName || '');
+                        setValue('lastName', user?.lastName || '');
+                        setValue('email', user?.email || '');
+                        setValue('phoneNumber', user?.phoneNumber || '');
+                        setValue('bio', user?.bio || '');
+                        toast.info('Form reset', { theme: 'dark' });
                       }}
                       className="px-[0.9vw] py-[0.6vw] rounded-md bg-white/5 hover:bg-white/10 text-white/80 text-[0.9vw]"
                     >
-                      Reset previews
+                      Reset form
                     </button>
 
                     {mutation.isSuccess && (
@@ -290,69 +352,113 @@ export default function ProfileSection() {
 
               {/* form fields */}
               <div className="mt-[1.4vw] grid grid-cols-1 md:grid-cols-2 gap-[1vw]">
+                {/* First Name */}
                 <div>
                   <label className="text-[0.9vw] text-white/70 mb-[0.4vw] block">First name</label>
                   <input
-                    {...register('firstName', { required: 'First name required' })}
-                    className="w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw]"
+                    {...register('firstName', {
+                      required: 'First name is required.',
+                      minLength: { value: 2, message: 'First name must be at least 2 characters.' },
+                    })}
+                    className={`w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw] text-white ${
+                      getErrorMessage('firstName') ? 'border-red-500' : 'border-[#1b2a44]'
+                    }`}
                     placeholder="First name"
                   />
-                  {errors.firstName && (
-                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw]">
-                      {errors.firstName.message}
+                  {getErrorMessage('firstName') && (
+                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" /> {getErrorMessage('firstName')}
                     </div>
                   )}
                 </div>
 
+                {/* Last Name */}
                 <div>
                   <label className="text-[0.9vw] text-white/70 mb-[0.4vw] block">Last name</label>
                   <input
-                    {...register('lastName', { required: 'Last name required' })}
-                    className="w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw]"
+                    {...register('lastName', {
+                      required: 'Last name is required.',
+                      minLength: { value: 2, message: 'Last name must be at least 2 characters.' },
+                    })}
+                    className={`w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw] text-white ${
+                      getErrorMessage('lastName') ? 'border-red-500' : 'border-[#1b2a44]'
+                    }`}
                     placeholder="Last name"
                   />
-                  {errors.lastName && (
-                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw]">
-                      {errors.lastName.message}
+                  {getErrorMessage('lastName') && (
+                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" /> {getErrorMessage('lastName')}
                     </div>
                   )}
                 </div>
 
+                {/* Email */}
                 <div>
                   <label className="text-[0.9vw] text-white/70 mb-[0.4vw] block">Email</label>
                   <input
                     {...register('email', {
-                      required: 'Email required',
-                      pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' },
+                      required: 'Email address is required.',
+                      pattern: {
+                        value: /^\S+@\S+$/i,
+                        message: 'Please enter a valid email address.',
+                      },
                     })}
-                    className="w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw]"
+                    className={`w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw] text-white ${
+                      getErrorMessage('email') ? 'border-red-500' : 'border-[#1b2a44]'
+                    }`}
                     placeholder="you@example.com"
                   />
-                  {errors.email && (
-                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw]">
-                      {errors.email.message}
+                  {getErrorMessage('email') && (
+                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" /> {getErrorMessage('email')}
                     </div>
                   )}
                 </div>
 
+                {/* Phone */}
                 <div>
                   <label className="text-[0.9vw] text-white/70 mb-[0.4vw] block">Phone</label>
                   <input
-                    {...register('phoneNumber')}
-                    className="w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw]"
+                    {...register('phoneNumber', {
+                      required: 'Phone number is required.',
+                      pattern: {
+                        value: /^\+?[0-9\s\-()]{7,20}$/,
+                        message: 'Please enter a valid phone number.',
+                      },
+                    })}
+                    className={`w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw] text-white ${
+                      getErrorMessage('phoneNumber') ? 'border-red-500' : 'border-[#1b2a44]'
+                    }`}
                     placeholder="+1 555 555 5555"
                   />
+                  {getErrorMessage('phoneNumber') && (
+                    <div className="text-[0.85vw] text-rose-400 mt-[0.4vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" /> {getErrorMessage('phoneNumber')}
+                    </div>
+                  )}
                 </div>
               </div>
 
+              {/* Bio */}
               <div className="mt-[1.2vw]">
                 <label className="text-[0.9vw] text-white/70 mb-[0.4vw] block">Bio</label>
                 <textarea
-                  {...register('bio')}
+                  {...register('bio', {
+                    required: 'Bio is required.',
+                    minLength: { value: 10, message: 'Bio must be at least 10 characters long.' },
+                    maxLength: { value: 1000, message: 'Bio must not exceed 1000 characters.' },
+                  })}
                   rows={4}
-                  className="w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw]"
+                  className={`w-full px-[0.9vw] py-[0.9vw] rounded-lg bg-[#081022] border outline-none focus:ring-2 focus:ring-indigo-500 text-[0.95vw] text-white ${
+                    getErrorMessage('bio') ? 'border-red-500' : 'border-[#1b2a44]'
+                  }`}
                   placeholder="Short bio about you..."
                 />
+                {getErrorMessage('bio') && (
+                  <div className="text-[0.85vw] text-rose-400 mt-[0.4vw] flex items-center gap-1">
+                    <FiAlertCircle className="text-xs" /> {getErrorMessage('bio')}
+                  </div>
+                )}
               </div>
 
               {/* upload progress bar */}
@@ -379,36 +485,20 @@ export default function ProfileSection() {
                       : 'bg-indigo-600 hover:bg-indigo-500 text-white'
                   } text-[0.95vw]`}
                 >
-                  {mutation.isLoading ? <PulseLoader size={8} color="#101426" /> : 'Update Profile'}
+                  {mutation.isLoading ? <PulseLoader size={8} color="#ffffff" /> : 'Update Profile'}
                 </motion.button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfilePreview(user?.profileImage || DEFAULT_AVATAR)
-                    setBannerPreview(user?.bannerImage || DEFAULT_BANNER)
-                    setProfileFile(null)
-                    setBannerFile(null)
-                    toast.info('Previews reset', { theme: 'dark' })
-                  }}
-                  className="px-[0.9vw] py-[0.8vw] rounded-full bg-white/5 hover:bg-white/10 text-white/80 text-[0.95vw]"
-                >
-                  Reset previews
-                </button>
               </div>
 
-              {/* backend validation errors (if any) */}
-              {mutation.isError && mutation.error?.response?.data?.errors && (
-                <div className="mt-[1vw] text-[0.85vw] text-rose-400 space-y-[0.4vw]">
-                  {mutation.error.response.data.errors.map((er, i) => (
-                    <div key={i}>{er.msg}</div>
-                  ))}
+              {/* Global server error message (if not field specific) */}
+              {mutation.isError && !serverFieldErrors.firstName && (
+                <div className="mt-[1vw] text-[0.85vw] text-rose-400">
+                  {mutation.error?.response?.data?.message}
                 </div>
               )}
             </div>
 
             {/* right: compact preview / meta (sticky on md+) */}
-            <aside className="w-full md:w-[22vw] flex-shrink-0">
+            <aside className="w-full md:w-[22vw] flex-shrink-0 mt-[1.4vw] md:mt-0">
               <div className="rounded-xl bg-[rgba(255,255,255,0.02)] border border-[#12203b] p-[1.1vw] sticky top-[2.4vw]">
                 <div className="flex items-center gap-[0.8vw]">
                   <div className="w-[5.2vw] h-[5.2vw] rounded-full overflow-hidden border border-white/6">
@@ -422,7 +512,7 @@ export default function ProfileSection() {
                     <div className="text-[1vw] font-semibold text-white truncate">
                       {user?.firstName} {user?.lastName}
                     </div>
-                    <div className="text-[0.8vw] text-white/60">{user?.email}</div>
+                    <div className="text-[0.8vw] text-white/60 truncate">{user?.email}</div>
                   </div>
                 </div>
 
@@ -443,10 +533,10 @@ export default function ProfileSection() {
                       type="file"
                       accept="image/*"
                       hidden
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        createPreview(file, setProfilePreview, setProfileFile)
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        createPreview(file, setProfilePreview, setProfileFile);
                       }}
                     />
                   </label>
@@ -454,13 +544,21 @@ export default function ProfileSection() {
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(profilePreview).then(() => {
-                        toast.success('Avatar URL copied', { theme: 'dark' })
-                      })
+                      if (profilePreview && profilePreview.startsWith('http')) {
+                        navigator.clipboard
+                          .writeText(profilePreview)
+                          .then(() => {
+                            toast.success('Avatar URL copied', { theme: 'dark' });
+                          })
+                          .catch(() => {
+                            toast.error('Failed to copy URL', { theme: 'dark' });
+                          });
+                      }
                     }}
                     className="px-[0.8vw] py-[0.7vw] rounded-md bg-white/5 hover:bg-white/10 text-[0.9vw]"
+                    title="Copy Avatar URL"
                   >
-                    Copy
+                    Copy URL
                   </button>
                 </div>
               </div>
@@ -469,5 +567,5 @@ export default function ProfileSection() {
         </div>
       </motion.div>
     </form>
-  )
+  );
 }

@@ -2,7 +2,6 @@ import React, { useEffect } from 'react'
 import { useDispatch } from 'react-redux'
 import { login, logout } from '../features/auth'
 import useCheckUserAuth from '../Secure/CheckUserAuth'
-import { PropagateLoader } from 'react-spinners'
 import ThemeReloader from '../common/Components/ThemeReloader'
 
 const AuthLoader = ({ children }) => {

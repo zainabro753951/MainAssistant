@@ -1,40 +1,40 @@
 // src/pages/auth/Register.jsx
-import React, { useEffect, useMemo, useState } from 'react'
-import { FcGoogle } from 'react-icons/fc'
-import { FaFacebookF } from 'react-icons/fa'
-import { FiCopy, FiCheck, FiExternalLink, FiEye, FiEyeOff } from 'react-icons/fi'
-import { Link } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { useMutation } from '@tanstack/react-query'
-import axios from 'axios'
-import { toast, ToastContainer } from 'react-toastify'
-import { motion } from 'motion/react'
-import 'react-toastify/dist/ReactToastify.css'
+import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
+import { motion } from 'motion/react';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { FaFacebookF } from 'react-icons/fa';
+import { FcGoogle } from 'react-icons/fc';
+import { FiAlertCircle, FiCheck, FiCopy, FiExternalLink, FiEye, FiEyeOff } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-const calcPasswordStrength = pwd => {
-  let score = 0
-  if (!pwd) return { score, label: 'Very weak' }
-  if (pwd.length >= 8) score += 1
-  if (/[A-Z]/.test(pwd)) score += 1
-  if (/[0-9]/.test(pwd)) score += 1
-  if (/[^A-Za-z0-9]/.test(pwd)) score += 1
+const calcPasswordStrength = (pwd) => {
+  let score = 0;
+  if (!pwd) return { score, label: 'Very weak' };
+  if (pwd.length >= 8) score += 1;
+  if (/[A-Z]/.test(pwd)) score += 1;
+  if (/[0-9]/.test(pwd)) score += 1;
+  if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
 
-  const label = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'][score]
-  return { score, label }
-}
+  const label = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'][score];
+  return { score, label };
+};
 
 const StrengthBar = ({ score = 0 }) => {
-  const width = `${(score / 4) * 100}%`
+  const width = `${(score / 4) * 100}%`;
   const bg =
     score >= 4
       ? 'bg-emerald-500'
       : score >= 3
-      ? 'bg-yellow-400'
-      : score >= 2
-      ? 'bg-orange-400'
-      : 'bg-red-500'
+        ? 'bg-yellow-400'
+        : score >= 2
+          ? 'bg-orange-400'
+          : 'bg-red-500';
   return (
     <div className="w-full bg-white/6 rounded md:h-[0.5vw] sm:h-[1vw] xs:h-[1.5vw] overflow-hidden">
       <div
@@ -42,8 +42,8 @@ const StrengthBar = ({ score = 0 }) => {
         className={`md:h-[0.5vw] sm:h-[1vw] xs:h-[1.5vw] ${bg} transition-all duration-300`}
       />
     </div>
-  )
-}
+  );
+};
 
 export default function Register() {
   const {
@@ -51,81 +51,100 @@ export default function Register() {
     handleSubmit,
     watch,
     reset,
-    formState: { errors, isDirty },
-  } = useForm({ mode: 'onBlur' })
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({ mode: 'onBlur' });
 
-  const [inviteUrl, setInviteUrl] = useState('')
-  const [copied, setCopied] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [inviteUrl, setInviteUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [serverErrors, setServerErrors] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const pwdValue = watch('password') || ''
-  const email = watch('email') || ''
-  const firstName = watch('firstName') || ''
-  const lastName = watch('lastName') || ''
-  const agreed = watch('isAgree') || false
+  const pwdValue = watch('password') || '';
+  const email = watch('email') || '';
+  const firstName = watch('firstName') || '';
+  const lastName = watch('lastName') || '';
+  const agreed = watch('isAgree') || false;
 
-  const { score, label: pwdLabel } = useMemo(() => calcPasswordStrength(pwdValue), [pwdValue])
+  const { score, label: pwdLabel } = useMemo(() => calcPasswordStrength(pwdValue), [pwdValue]);
 
-  // progress: fields filled (first, last, email, password, agree)
   const progress = Math.round(
     ((!!firstName + !!lastName + !!email + !!pwdValue + (agreed ? 1 : 0)) / 5) * 100
-  )
+  );
 
-  const formSubmit = async data => {
-    const res = await axios.post(`${backendUrl}/register`, data)
-    return res.data
-  }
+  const formSubmit = async (data) => {
+    const res = await axios.post(`${backendUrl}/register`, {
+      ...data,
+      isAgree: data.isAgree === true || data.isAgree === 'true',
+    });
+    return res.data;
+  };
 
   const { mutate, isSuccess, data, error, isError } = useMutation({
     mutationFn: formSubmit,
-    onMutate: () => setSubmitting(true),
-    onSettled: () => setSubmitting(false),
-  })
+    onMutate: () => {
+      setServerErrors([]);
+      return { submitting: true };
+    },
+    onSettled: () => setServerErrors([]),
+  });
 
   useEffect(() => {
     if (isSuccess && data) {
-      toast.success(data.message || 'Account created', {
+      toast.success(data.message || 'Account created successfully!', {
         position: 'top-right',
         autoClose: 4500,
         theme: 'dark',
         style: { backgroundColor: '#0f1724', border: '1px solid #3f3eed' },
-      })
+      });
 
-      if (typeof window !== 'undefined') {
-        // build example invite link (use your real logic if you have referral tokens)
-        const origin = window.location.origin
-        const ref = encodeURIComponent(data?.user?.email || '')
-        setInviteUrl(`${origin}/invite?ref=${ref}`)
-      }
+      const origin = window.location.origin;
+      const ref = encodeURIComponent(data?.userId || email || '');
+      setInviteUrl(`${origin}/invite?ref=${ref}`);
 
-      reset()
+      reset();
     }
+  }, [isSuccess, data, reset, email]);
 
+  useEffect(() => {
     if (isError) {
-      toast.error(error?.response?.data?.message || 'Registration failed', {
-        position: 'top-right',
-        autoClose: 4500,
-        theme: 'dark',
-        style: { backgroundColor: '#0f1724', border: '1px solid #d34b4b' },
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSuccess, isError])
+      const errorData = error?.response?.data;
+      const message = errorData?.message || 'Registration failed. Please try again.';
 
-  const onSubmit = payload => mutate(payload)
+      if (errorData?.errorCode === 'VALIDATION_ERROR' && errorData?.errors) {
+        setServerErrors(errorData.errors);
+      } else if (errorData?.errorCode === 'EMAIL_EXISTS') {
+        setError('email', { type: 'server', message: errorData.message });
+      } else {
+        toast.error(message, {
+          position: 'top-right',
+          autoClose: 4500,
+          theme: 'dark',
+          style: { backgroundColor: '#0f1724', border: '1px solid #d34b4b' },
+        });
+      }
+    }
+  }, [isError, error, setError]);
+
+  const onSubmit = (payload) => mutate(payload);
 
   const handleCopyInvite = async () => {
-    if (!inviteUrl) return
+    if (!inviteUrl) return;
     try {
-      await navigator.clipboard.writeText(inviteUrl)
-      setCopied(true)
-      toast.success('Invite link copied!', { position: 'top-right', theme: 'dark' })
-      setTimeout(() => setCopied(false), 1400)
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      toast.success('Invite link copied!', { position: 'top-right', theme: 'dark' });
+      setTimeout(() => setCopied(false), 1400);
     } catch {
-      toast.error('Copy failed', { position: 'top-right', theme: 'dark' })
+      toast.error('Copy failed', { position: 'top-right', theme: 'dark' });
     }
-  }
+  };
+
+  const getFieldServerError = (field) => {
+    if (!serverErrors) return '';
+    const err = serverErrors.find((e) => e.field === field);
+    return err ? err.message : '';
+  };
 
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-gradient-to-b from-[#071225] to-[#041026] md:p-[1.5vw] sm:p-[2vw] xs:p-[2.5vw]">
@@ -152,7 +171,7 @@ export default function Register() {
               <img
                 src="/images/AI-agents.webp"
                 className=" w-full h-full rounded-lg object-cover"
-                alt=""
+                alt="AI Agents"
               />
             </div>
 
@@ -164,12 +183,14 @@ export default function Register() {
                 <button
                   type="button"
                   className="inline-flex items-center gap-3 md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-white/95 text-black font-semibold shadow-sm hover:scale-102 transform transition md:text-[1.1vw] sm:text-[2.1vw] xs:text-[3.6vw]"
+                  onClick={() => (window.location.href = `${backendUrl}/auth/google`)}
                 >
                   <FcGoogle /> Continue with Google
                 </button>
                 <button
                   type="button"
                   className="inline-flex items-center gap-3 md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#1877f2]/90 text-white font-semibold shadow-sm hover:scale-102 transform transition md:text-[1.1vw] sm:text-[2.1vw] xs:text-[3.6vw]"
+                  onClick={() => (window.location.href = `${backendUrl}/auth/facebook`)}
                 >
                   <FaFacebookF /> Facebook
                 </button>
@@ -228,13 +249,17 @@ export default function Register() {
                     type="text"
                     autoComplete="given-name"
                     placeholder="First name"
-                    className="md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw]"
-                    {...register('firstName', { required: 'First name is required' })}
+                    className={`md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw] ${errors.firstName || getFieldServerError('firstName') ? 'border-red-500' : 'border-[#1b2a44]'}`}
+                    {...register('firstName', {
+                      required: 'First name is required.',
+                      minLength: { value: 2, message: 'First name must be at least 2 characters.' },
+                    })}
                     aria-invalid={errors.firstName ? 'true' : 'false'}
                   />
-                  {errors.firstName && (
-                    <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw]">
-                      {errors.firstName.message}
+                  {(errors.firstName || getFieldServerError('firstName')) && (
+                    <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" />
+                      {errors.firstName?.message || getFieldServerError('firstName')}
                     </span>
                   )}
                 </div>
@@ -251,13 +276,17 @@ export default function Register() {
                     type="text"
                     autoComplete="family-name"
                     placeholder="Last name"
-                    className="md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw]"
-                    {...register('lastName', { required: 'Last name is required' })}
+                    className={`md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw] ${errors.lastName || getFieldServerError('lastName') ? 'border-red-500' : 'border-[#1b2a44]'}`}
+                    {...register('lastName', {
+                      required: 'Last name is required.',
+                      minLength: { value: 2, message: 'Last name must be at least 2 characters.' },
+                    })}
                     aria-invalid={errors.lastName ? 'true' : 'false'}
                   />
-                  {errors.lastName && (
-                    <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw]">
-                      {errors.lastName.message}
+                  {(errors.lastName || getFieldServerError('lastName')) && (
+                    <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] flex items-center gap-1">
+                      <FiAlertCircle className="text-xs" />
+                      {errors.lastName?.message || getFieldServerError('lastName')}
                     </span>
                   )}
                 </div>
@@ -275,15 +304,19 @@ export default function Register() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
-                  className="md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw]"
+                  className={`md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border text-white outline-none focus:ring-2 focus:ring-indigo-500 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw] ${errors.email ? 'border-red-500' : 'border-[#1b2a44]'}`}
                   {...register('email', {
-                    required: 'Email is required',
-                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email' },
+                    required: 'Email address is required.',
+                    pattern: {
+                      value: /^\S+@\S+$/i,
+                      message: 'Please enter a valid email address.',
+                    },
                   })}
                   aria-invalid={errors.email ? 'true' : 'false'}
                 />
                 {errors.email && (
-                  <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw]">
+                  <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] flex items-center gap-1">
+                    <FiAlertCircle className="text-xs" />
                     {errors.email.message}
                   </span>
                 )}
@@ -302,16 +335,33 @@ export default function Register() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     placeholder="Create a password"
-                    className="w-full md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border border-[#1b2a44] text-white outline-none focus:ring-2 focus:ring-indigo-500 pr-10 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw]"
+                    className={`w-full md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] bg-[#091022] border text-white outline-none focus:ring-2 focus:ring-indigo-500 pr-10 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw] ${errors.password || getFieldServerError('password') ? 'border-red-500' : 'border-[#1b2a44]'}`}
                     {...register('password', {
-                      required: 'Password is required',
-                      minLength: { value: 8, message: 'Min 8 characters' },
+                      required: 'Password is required.',
+                      minLength: {
+                        value: 8,
+                        message: 'Password must be at least 8 characters long.',
+                      },
+                      maxLength: {
+                        value: 128,
+                        message: 'Password must not exceed 128 characters.',
+                      },
+                      validate: (val) => {
+                        if (!/[A-Z]/.test(val))
+                          return 'Password must contain at least one uppercase letter.';
+                        if (!/[a-z]/.test(val))
+                          return 'Password must contain at least one lowercase letter.';
+                        if (!/[0-9]/.test(val)) return 'Password must contain at least one number.';
+                        if (!/[^A-Za-z0-9]/.test(val))
+                          return 'Password must contain at least one special character (e.g., !@#$%^&*).';
+                        return true;
+                      },
                     })}
                     aria-invalid={errors.password ? 'true' : 'false'}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(s => !s)}
+                    onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     className="absolute md:right-[1vw] sm:right-[1.5vw] xs:right-[2vw] top-1/2 -translate-y-1/2 text-white/70 md:text-[1.2vw] sm:text-[2.2vw] xs:text-[3.7vw]"
                   >
@@ -339,9 +389,10 @@ export default function Register() {
                   </div>
                 </div>
 
-                {errors.password && (
-                  <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw]">
-                    {errors.password.message}
+                {(errors.password || getFieldServerError('password')) && (
+                  <span className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] flex items-center gap-1">
+                    <FiAlertCircle className="text-xs" />
+                    {errors.password?.message || getFieldServerError('password')}
                   </span>
                 )}
               </div>
@@ -350,35 +401,44 @@ export default function Register() {
                 <input
                   id="isAgree"
                   type="checkbox"
-                  className="md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] w-4 h-4 accent-indigo-400"
-                  {...register('isAgree', { required: 'You must agree to continue' })}
+                  className="md:mb-[0.3vw] sm:mb-[0.8vw] xs:mb-[1.3vw] w-4 h-4 accent-indigo-400 cursor-pointer"
+                  {...register('isAgree', {
+                    required: 'You must agree to the Terms & Conditions and Privacy Policy.',
+                  })}
                   aria-invalid={errors.isAgree ? 'true' : 'false'}
                 />
                 <label
                   htmlFor="isAgree"
-                  className="md:text-[1.1vw] sm:text-[2.1vw] xs:text-[3.6vw] text-white/70"
+                  className="md:text-[1.1vw] sm:text-[2.1vw] xs:text-[3.6vw] text-white/70 cursor-pointer"
                 >
                   I agree to the{' '}
-                  <Link to="/terms" className="text-indigo-300 underline">
+                  <Link to="/terms" className="text-indigo-300 underline hover:text-indigo-400">
                     privacy policy & terms
                   </Link>
                 </label>
               </div>
               {errors.isAgree && (
-                <div className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400">
-                  {errors.isAgree.message}
+                <div className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 flex items-center gap-1">
+                  <FiAlertCircle className="text-xs" /> {errors.isAgree.message}
+                </div>
+              )}
+              {getFieldServerError('isAgree') && (
+                <div className="md:text-[1vw] sm:text-[2vw] xs:text-[3.5vw] text-red-400 flex items-center gap-1">
+                  <FiAlertCircle className="text-xs" /> {getFieldServerError('isAgree')}
                 </div>
               )}
 
               <button
                 type="submit"
-                disabled={submitting || !isDirty}
-                className={`w-full inline-flex items-center justify-center gap-2 md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] text-white font-semibold sem transition md:text-[1.3vw] sm:text-[2.3vw] xs:text-[3.8vw] ${
-                  submitting ? 'bg-indigo-500/70 cursor-wait' : 'bg-indigo-600 hover:bg-indigo-500'
+                disabled={isSubmitting}
+                className={`w-full inline-flex items-center justify-center gap-2 md:px-[1vw] sm:px-[1.5vw] xs:px-[2vw] md:py-[0.7vw] sm:py-[1.2vw] xs:py-[1.7vw] md:rounded-[0.5vw] sm:rounded-[1vw] xs:rounded-[1.5vw] text-white font-semibold transition md:text-[1.3vw] sm:text-[2.3vw] xs:text-[3.8vw] ${
+                  isSubmitting
+                    ? 'bg-indigo-500/70 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-500'
                 }`}
-                aria-busy={submitting}
+                aria-busy={isSubmitting}
               >
-                {submitting ? (
+                {isSubmitting ? (
                   <>
                     <svg
                       className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
@@ -411,7 +471,7 @@ export default function Register() {
             <div className="mt-4 flex items-center justify-between md:text-[1.1vw] sm:text-[2.1vw] xs:text-[3.6vw] text-white/60">
               <div>
                 Already have an account?{' '}
-                <Link to="/login" className="text-indigo-300 font-semibold">
+                <Link to="/login" className="text-indigo-300 font-semibold hover:text-indigo-200">
                   Sign in
                 </Link>
               </div>
@@ -476,5 +536,5 @@ export default function Register() {
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
